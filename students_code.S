@@ -13,7 +13,7 @@ sum_of_text:
   movq $1, %r13 #reached EOF if it is zero
   movq $0, %rsi #O_RDONLY flag for open
   movb %dl, %r14b #seperator argument
-  movq $0 %r15 #fd from open
+  movq $0, %r15 #fd from open
 
   call get_path
   movq %rax, %rdi
@@ -23,24 +23,24 @@ sum_of_text:
 main_loop:
   movq %r15, %rdi #r15 holds the fd from the open syscall, passing to rdi argument
   movq $0, %rax #syscall identifier for read
-  movq (%rbp,%r12,1), %rsi #beginning of the stack buffer will be passed as argument
+  movq (%rbp,%r12,-1), %rsi #beginning of the stack buffer will be passed as argument
   movq $1, %rdx #size of read buffer.
   syscall #calling read of one byte into the top of the buffer stack 
   movq %rax, %r13
-  cmpb $0, %rax #check if reached EOF
+  cmpq $0, %rax #check if reached EOF
   je handle_seperator
-  cmpb (%rbp,%r12,1), %r14b #check if read_char == seperator
+  cmpb (%rbp,%r12,-1), %r14b #check if read_char == seperator
   je handle_seperator
-  cmpb $10, (%rbp,%r12,1) #check if read_char == \n
+  cmpb $10, (%rbp,%r12,-1) #check if read_char == \n
   je handle_seperator
   addq $1, %r12 #i++
   jmp main_loop #if reached then we should keep reading the next byte
 
 handle_seperator:
-  movb $0, (%rbp,%r12,1) #replacing the seperator with null
+  movb $0, (%rbp,%r12,-1) #replacing the seperator with null
   movq %rbp, %rdi #putting the start of the stack as the char* argument
   call text_to_number
-  cmbq %rax, $-1
+  cmpq $-1, %rax
   je reset_stack
   addq %rax, %rbx #if reached then %rax holds an actual number
 
@@ -56,3 +56,4 @@ reset_stack:
   movq %rbx, %rax
   leave
   ret
+  
